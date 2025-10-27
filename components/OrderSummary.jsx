@@ -50,7 +50,7 @@ const OrderSummary = () => {
         return toast.error("Please select an address");
       }
       let cartItemsArray = Object.keys(cartItems).map((key) => ({
-        products: key,
+        product: key,
         quantity: cartItems[key],
       }));
       cartItemsArray = cartItemsArray.filter((item) => item.quantity > 0);
