@@ -74,7 +74,7 @@ export const createUserOrder = inngest.createFunction(
       return {
         userId: event.data.userId,
         items: event.data.items.map((item) => ({
-          products: item.product, // Thay key 'product' thành 'products'
+          products: item.products, // Thay key 'product' thành 'products'
           quantity: item.quantity,
         })),
         amount: event.data.amount,

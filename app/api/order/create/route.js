@@ -1,4 +1,5 @@
-import connectDB from "@/config/db";
+// app/api/order/create/route.js
+
 import { inngest } from "@/config/inngest";
 import Product from "@/models/Product";
 import User from "@/models/User";
@@ -7,17 +8,36 @@ import { NextResponse } from "next/server";
 
 export async function POST(request) {
   try {
-    await connectDB();
     const { userId } = getAuth(request);
     const { address, items } = await request.json();
 
     if (!address || items.length === 0) {
       return NextResponse.json({ success: false, message: "Invalid data" });
     }
-    const amount = await items.reduce(async (acc, item) => {
-      const product = await Product.findById(item.product);
-      return (await acc) + product.offerPrice * item.quantity;
-    }, 0);
+
+    // --- BẮT ĐẦU: CODE ĐÃ SỬA ---
+
+    let amount = 0;
+    // Dùng vòng lặp for...of để xử lý await đúng cách
+    for (const item of items) {
+      // item.product có thể là tên cũ, nếu bạn đã sửa ở client thì dùng item.products
+      const product = await Product.findById(item.product || item.products);
+
+      // Kiểm tra xem sản phẩm có tồn tại không để tránh lỗi
+      if (product) {
+        amount += product.offerPrice * item.quantity;
+      } else {
+        // Có thể ghi log lại để kiểm tra nếu cần
+        console.warn(
+          `Sản phẩm với ID ${
+            item.product || item.products
+          } không được tìm thấy. Bỏ qua.`
+        );
+      }
+    }
+
+    // --- KẾT THÚC: CODE ĐÃ SỬA ---
+
     await inngest.send({
       name: "order/created",
       data: {
@@ -30,10 +50,12 @@ export async function POST(request) {
     });
 
     // Clear user cart
-    // const user = await User.findById(userId);
-    const user = await User.findOne({ userId: userId });
-    user.cartItems = {};
-    await user.save();
+    const user = await User.findById(userId);
+    if (user) {
+      user.cartItems = {};
+      await user.save();
+    }
+
     return NextResponse.json({ success: true, message: "Order Placed" });
   } catch (error) {
     console.log(error);
